@@ -1,0 +1,118 @@
+# RECONSTRUCTED 1-degree config (2026-10-12). The 1deg checkpoint
+# /data/weidong/InMOS_1deg/ckpt/ema_ckpt.pt (wandb samudra-v2-1deg-rust-8step-ga2-210649,
+# epoch 70) ships WITHOUT a config. This is the 0.25deg SamudraV2 config with exactly the
+# changes needed for a strict load of that checkpoint (all 178 keys match):
+#   boundary_vars_key  tau_hfds_hfds_anom -> tau_hfds   (input 160 = 2*77 + 2*3)
+#   core_block.norm    instance -> batch                (BatchNorm running stats in ckpt)
+#   corrector          {all off} -> null                (no corrector params in ckpt)
+# The decoder outputs 77 channels = ONE 5-day step (x(t+1) from [x(t-1), x(t)]); the
+# local ocean_emulators builds (hist+1)*77, so load_model_and_data reads out_channels
+# from the checkpoint instead. Fields below that only matter for training (lr, steps,
+# times, ...) are the 0.25deg values, NOT the 1deg run's.
+backend: nccl
+batch_size: 1
+data:
+  concurrent_compute: true
+  hist: 1
+  loader_version: om4-torch
+  masked_fill_value: 0.0
+  normalize_before_mask: true
+  num_workers: 4
+  sources:
+  - data_location: OM4.zarr
+    data_means_location: OM4_means.zarr
+    data_stds_location: OM4_stds.zarr
+  static_data_vars: []
+data_percent: 1.0
+data_stride:
+- 1
+debug: false
+disk_mode: true
+ema_decay: 0.999
+epochs: 70
+experiment:
+  base_output_dir: /outputs/
+  boundary_vars_key: tau_hfds
+  data_root: /home/ubuntu/data
+  name: 2025-02-08-samudra_om4_quarterdeg_cap_20
+  prognostic_vars_key: thermo_dynamic_all
+  rand_seed: 15
+  train_schedule: standard
+  wandb:
+    entity: ocean_emulators
+    group: null
+    mode: online
+    notes: null
+    project: default
+    tags: null
+faster_decay_at_start: true
+finetune: false
+gradient_accumulation_steps: 4
+inference_epochs: []
+inference_times:
+- end: '1976-01-03'
+  start: '1975-01-03'
+- end: '1986-01-03'
+  start: '1985-01-03'
+- end: '1996-01-03'
+  start: '1995-01-03'
+- end: '2005-10-05'
+  start: '2004-10-05'
+learning_rate: 0.0006
+loss:
+  limit: 20.0
+  metric: mse
+  type: dynamic
+model:
+  add_3d_coordinates: false
+  checkpointing: all
+  corrector: null
+  gradient_detach_interval: 0
+  last_kernel_size: 3
+  pad: circular
+  pos_channels: 0
+  pred_residuals: false
+  unet:
+    ch_width:
+    - 280
+    - 380
+    - 480
+    - 520
+    core_block:
+      activation: capped_gelu
+      block_type: conv_next_block
+      kernel_size: 3
+      norm: batch
+      upscale_factor: 2
+    dilation:
+    - 1
+    - 2
+    - 4
+    - 8
+    down_sampling_block: avg_pool
+    n_layers:
+    - 1
+    - 1
+    - 1
+    - 1
+    up_sampling_block: zonally_periodic_upsample
+  use_bfloat16: true
+pin_mem: true
+preemptible: false
+profiler:
+  cuda_snapshot_frequency: null
+resume_ckpt_path: null
+save_freq: 5
+scheduler:
+  target_epochs: null
+  type: cosine
+step_transition: []
+steps:
+- 4
+test_using_ema: true
+train_time:
+  end: '2013-10-05'
+  start: '1975-01-03'
+val_time:
+  end: '2014-10-05'
+  start: '2013-10-05'
